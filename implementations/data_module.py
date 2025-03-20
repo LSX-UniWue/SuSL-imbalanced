@@ -2,7 +2,7 @@ from typing import Dict
 
 from lightning import LightningDataModule
 from torch import Tensor
-from torch.utils.data import Dataset, Sampler, DataLoader
+from torch.utils.data import Dataset, Sampler, DataLoader, RandomSampler
 
 
 class MixedDataset(Dataset):
@@ -11,7 +11,6 @@ class MixedDataset(Dataset):
         dataset_labelled: Dataset,
         dataset_unlabelled: Dataset,
         sampler_labelled: Sampler,
-        sampler_unlabelled: Sampler,
     ) -> None:
         super().__init__()
         self.__size = max(len(dataset_labelled), len(dataset_unlabelled))
@@ -19,7 +18,7 @@ class MixedDataset(Dataset):
         self.__dataset_unlabelled = dataset_unlabelled
         self.__iterator_labelled, self.__iterator_unlabelled = None, None
         self.__sampler_labelled = sampler_labelled
-        self.__sampler_unlabelled = sampler_unlabelled
+        self.__sampler_unlabelled = RandomSampler(data_source=dataset_unlabelled)
         self.__reset_iterators()
 
     def __reset_iterators(self) -> None:
@@ -46,7 +45,6 @@ class SemiUnsupervisedDataModule(LightningDataModule):
         train_dataset_unlabeled: Dataset,
         train_dataset_labeled: Dataset,
         sampler_labelled: Sampler,
-        sampler_unlabelled: Sampler,
         validation_dataset: Dataset,
         test_dataset: Dataset,
         batch_size: int = 32,
@@ -58,7 +56,6 @@ class SemiUnsupervisedDataModule(LightningDataModule):
         self.__validation_dataset = validation_dataset
         self.__test_dataset = test_dataset
         self.__sampler_labelled = sampler_labelled
-        self.__sampler_unlabelled = sampler_unlabelled
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -66,7 +63,6 @@ class SemiUnsupervisedDataModule(LightningDataModule):
                 dataset_labelled=self.__train_dataset_labeled,
                 dataset_unlabelled=self.__train_dataset_unlabeled,
                 sampler_labelled=self.__sampler_labelled,
-                sampler_unlabelled=self.__sampler_unlabelled,
             ),
             batch_size=self.__batch_size,
         )

@@ -53,7 +53,6 @@ def run_cnn() -> None:
         sampler_labelled=MeanSampler(
             class_map=train_dataset_labeled_class_map, num_samples=len(train_dataset_unlabeled)
         ),
-        sampler_unlabelled=RandomSampler(data_source=train_dataset_unlabeled),
         batch_size=128,
     )
 
@@ -107,6 +106,7 @@ def run_cnn() -> None:
         q_z_xy_module=q_z_xy_module,
         log_priors=log_priors,
     )
+    # Use BiSampling model from implementations as a wrapper for BiSampling capabilities.
     print(model)
     # Create trainer and run
     lt_model = LightningGMMModel(
