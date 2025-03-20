@@ -1,3 +1,4 @@
-# SuSL-imbalanced
+# Handling Dataset Imbalance in Semi-Unsupervised Learning
 
-New implementation coming soon!
+## Notes
+The submodule `susl_base` is from our repository [Semi-unsupervised Learning: An In-depth Parameter Analysis](https://github.com/LSX-UniWue/SuSL-in-depth).
