@@ -40,24 +40,34 @@ class BiSamplingModel(Module):
         max_p, p_hat = max(weak_labels, dim=1)
 
         # Create labelled selection mask
-        select_mask1 = max_p >= self.__label_threshold
-        select_mask2 = rand_like(weak_labels) < mixture_sampler[p_hat]
-        select_mask3 = weak_labels < mixture_sampler.nelement()
-        mask = select_mask1 & select_mask2 & select_mask3
+        select_mask_labelled = p_hat < mixture_sampler.nelement()
+        max_p_labelled, p_hat_labelled = max_p[select_mask_labelled], p_hat[select_mask_labelled]
+        select_mask1 = max_p_labelled >= self.__label_threshold
+        select_mask2 = rand_like(max_p_labelled) < mixture_sampler[p_hat_labelled]
+        mask = select_mask1 & select_mask2
 
         # Get real predictions
         labels = self.__model.predict(data["x_u"])
         losses = self.__model(data)
 
         # Update losses
-        losses["reg_labelled"] = losses["reg_labelled"] + cross_entropy(input=labels, target=p_hat)[mask].mean()
+        losses["reg_labelled"] = (
+            losses["reg_labelled"]
+            + cross_entropy(input=labels[select_mask_labelled], target=p_hat_labelled)[mask].mean()
+        )
 
         # Create unknown labelled selection mask
         if self.__sampler_a_augmented is not None and self.__sampler_b_augmented is not None:
-            select_mask1 = max_p >= self.__label_threshold
-            select_mask2 = rand_like(weak_labels) < mixture_sampler[p_hat]
-            select_mask3 = weak_labels >= mixture_sampler.nelement()
-            mask = select_mask1 & select_mask2 & select_mask3
-            losses["reg_unlabelled"] = losses["reg_unlabelled"] + cross_entropy(input=labels, target=p_hat)[mask].mean()
+            mixture_sampler_unlabelled = alpha * self.__sampler_a_augmented + (1 - alpha) * self.__sampler_b_augmented
+            select_mask_unlabelled = p_hat >= mixture_sampler.nelement()
+            max_p_unlabelled, p_hat_unlabelled = max_p[select_mask_unlabelled], p_hat[select_mask_unlabelled]
+            select_mask1 = max_p_unlabelled >= self.__label_threshold
+            select_mask2 = rand_like(max_p_unlabelled) < mixture_sampler_unlabelled[p_hat_unlabelled]
+            mask = select_mask1 & select_mask2
+
+            losses["reg_unlabelled"] = (
+                losses["reg_unlabelled"]
+                + cross_entropy(input=labels[select_mask_unlabelled], target=p_hat)[mask].mean()
+            )
 
         return losses
